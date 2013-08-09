@@ -1,4 +1,4 @@
-from twisted.internet.protocol.basic import LineReceiver
+from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import ServerFactory
 
 class ParseData(object):
@@ -7,7 +7,7 @@ class ParseData(object):
         self.clients = {}
 
     def dispatch(self, cmd, contents, protocol):
-        return dispatch_dict.get(cmd, self.errhandle)(contents, protocol)
+        return self.dispatch_dict.get(cmd, self.errhandle)(contents, protocol)
 
     def register(self, contents, protocol):
         """
@@ -27,33 +27,38 @@ class ParseData(object):
         CHAT is used to send data to every client connected to server
         """
         if protocol.nick is None:
-            return self.errhandle('DATA:Unregistered user! register first.')
+            return self.errhandle('DATA:Unregistered user! register first.', protocol)
         
-        for proto in clients.values():
-            return self.send(protocol.nick, contents) 
+        for proto in self.clients.values():
+            self.send(proto, protocol.nick, contents) 
 
     def unregister(self, contents, protocol):
         """
         UNREGISTER causes the user to be unregistered and disconnected
         """
-
         if protocol.nick is not None and protocol.nick in self.clients:
             del self.clients[protocol.nick]
 
         protocol.transport.loseConnection()
 
-    def send(self, nick, contents):
+    def send(self, protocol, nick, contents):
         protocol.sendLine('OK:DATA:'+nick+':'+contents)
 
-    def errhandle(self, message, protocol=None):
+    def errhandle(self, message, protocol):
         protocol.sendLine('ERR:'+message)
+
+    def get_clients(self):
+        return self.clients.keys()
         
 class ChatProtocol(LineReceiver):
     nick = None
 
     def lineReceived(self, line):
-        cmd, data = line.split(':',1)
-        self.factory.parser.dispatch(cmd, contents, self)
+        try:
+            cmd, data = line.split(':',1)
+            self.factory.parser.dispatch(cmd, data, self)
+        except:
+            self.factory.parser.dispatch(line, '', self)
 
 class ChatProtocolFactory(ServerFactory):   
     protocol = ChatProtocol
@@ -66,7 +71,8 @@ def main():
     Creates reactor, and adds stuff for making connections
     """
 
-    from twisted import reactor
+    from twisted.internet import reactor
+    import sys
     p = reactor.listenTCP(int(sys.argv[1]), ChatProtocolFactory(), interface='localhost')
     reactor.run()
 
