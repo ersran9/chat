@@ -65,7 +65,7 @@ class ChatProtocolFactory(ServerFactory):
 
 def main():
     """
-    Creates reactor, and adds stuff for making connections
+    runs reactor, and adds stuff for making connections
     """
 
     from twisted.internet import reactor
