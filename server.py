@@ -27,7 +27,7 @@ class ParseData(object):
         CHAT is used to send data to every client connected to server
         """
         if protocol.nick is None:
-            return self.errhandle('DATA:Unregistered user! register first.', protocol)
+            return self.errhandle('CHAT:Unregistered user! register first.', protocol)
         
         for proto in self.clients.values():
             self.send(proto, protocol.nick, contents) 
@@ -42,7 +42,7 @@ class ParseData(object):
         protocol.transport.loseConnection()
 
     def send(self, protocol, nick, contents):
-        protocol.sendLine('OK:DATA:'+nick+':'+contents)
+        protocol.sendLine('OK:CHAT:'+nick+':'+contents)
 
     def errhandle(self, message, protocol):
         protocol.sendLine('ERR:'+message)
@@ -54,11 +54,8 @@ class ChatProtocol(LineReceiver):
     nick = None
 
     def lineReceived(self, line):
-        try:
-            cmd, data = line.split(':',1)
-            self.factory.parser.dispatch(cmd, data, self)
-        except:
-            self.factory.parser.dispatch(line, '', self)
+        cmd, data = line.split(':',1)
+        self.factory.parser.dispatch(cmd, data, self)
 
 class ChatProtocolFactory(ServerFactory):   
     protocol = ChatProtocol
