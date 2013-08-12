@@ -2,16 +2,20 @@ from chat.server import ChatProtocolFactory
 from twisted.trial import unittest
 from twisted.test import proto_helpers
 
-class ChatServerTest(unittest):
+class ChatServerTest(unittest.TestCase):
     """
     Tests for the Chat Server follows
     """
 
     def setUp(self):
         factory = ChatProtocolFactory()
-        self.proto1 = factory.buildProtocol(('127.0.0.1', 0))
-        self.proto2 = factory.buildProtocol(('127.0.0.1', 0))
-        self.proto3 = factory.buildProtocol(('127.0.0.1', 0))
+        self.proto1 = factory.buildProtocol(('127.0.0.1', 2233))
+        self.proto2 = factory.buildProtocol(('127.0.0.1', 2233))
+        self.proto3 = factory.buildProtocol(('127.0.0.1', 2233))
+
+        self.proto1.factory = factory
+        self.proto2.factory = factory
+        self.proto3.factory = factory 
 
         self.tr1 = proto_helpers.StringTransport()
         self.tr2 = proto_helpers.StringTransport()
@@ -20,7 +24,13 @@ class ChatServerTest(unittest):
         self.proto1.makeConnection(self.tr1)
         self.proto2.makeConnection(self.tr2)
         self.proto3.makeConnection(self.tr3)
-       
+    
+    def tearDown(self):
+        self.proto1.transport.loseConnection()
+        self.proto2.transport.loseConnection()
+        self.proto3.transport.loseConnection()
+
+
     def test_register(self):
         """
         Tests the REGISTER command of chat. Used to 'add' the user to the chat
@@ -31,14 +41,14 @@ class ChatServerTest(unittest):
         """
 
         self.proto1.dataReceived('REGISTER:foo:')
-        self.assertItemsEqual(factory.get_clients(), set(['foo']))
+        self.assertItemsEqual(self.proto1.factory.parser.get_clients(), ['foo'])
         self.assertEqual(self.tr1.value(), 'OK:NICK:foo')
 
         self.proto2.dataReceived('REGISTER:foo:')
         self.assertEqual(self.tr2.value(), 'ERR:NICK:Nick already exists. Use another nick')
 
         self.proto3.dataReceived('REGISTER:bar:')
-        self.assertItemsEqual(factory.get_clients(), set(['foo', 'bar']))
+        self.assertItemsEqual(self.proto3.factory.parser.get_clients(), ['foo', 'bar'])
         self.assertEqual(self.tr2.value(), 'OK:NICK:bar')
 
     def test_valid_chat(self):
@@ -73,11 +83,11 @@ class ChatServerTest(unittest):
 
         self.proto1.dataReceived('REGISTER:foo:')
         self.assertEqual(self.tr1.value(), 'OK:NICK:foo')
-        self.assertItemsEqual(factory.get_clients(), set(['foo']))
+        self.assertItemsEqual(self.proto1.factory.parser.get_clients(), ['foo'])
         self.proto1.dataReceived('UNREGISTER::')
-        self.assertItemsEqual(factory.get_clients(), set())
+        self.assertItemsEqual(self.proto1.factory.parser.get_clients(), [])
 
         # if someone unregistered sends unregister, ignore them
         self.proto1.dataReceived('UNREGISTER::')
-        self.assertItemsEqual(factory.get_clients(), set())
+        self.assertItemsEqual(factory.parser.get_clients(), set())
 
