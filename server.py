@@ -61,7 +61,11 @@ class ChatProtocol(LineReceiver):
     nick = None
 
     def lineReceived(self, line):
-        cmd, data = line.split(':',1)
+        try:
+            cmd, data = line.split(':',1)
+        except ValueError:
+            # it makes sense to ignore invalid requests
+            return
         self.factory.parser.dispatch(cmd, data, self)
 
     def connectionLost(self, reason):
