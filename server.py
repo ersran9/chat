@@ -68,7 +68,7 @@ class ChatProtocol(LineReceiver):
         perform cleanup here. entries made in client dict are to be cleared out
         [ in ParseData class ]
         """
-        for nick, protocol in self.factory.parser.clients:
+        for nick, protocol in self.factory.parser.clients.items():
             if self == protocol:
                 del self.factory.parser.clients[nick]
                 return
