@@ -1,6 +1,7 @@
 from chat.server import ChatProtocolFactory
-from twisted.trial import unittest
 from twisted.test import proto_helpers
+from twisted.trial import unittest
+
 
 class ChatServerTest(unittest.TestCase):
     """
@@ -88,9 +89,37 @@ class ChatServerTest(unittest.TestCase):
         self.assertItemsEqual(self.proto1.factory.parser.get_clients(), [])
 
     def test_change_nick(self):
+        """
+        Tests whether on changing nick, proper updation is done at server side
+        """
         self.proto1.lineReceived('REGISTER:foo:')
         self.proto1.lineReceived('CHAT:hey')
         self.proto1.lineReceived('REGISTER:bar:')
         self.assertItemsEqual(self.proto1.factory.parser.get_clients(), ['bar'])
         self.assertEqual(self.tr1.value().strip(), 'OK:NICK:foo\r\nOK:CHAT:foo:hey\r\nOK:NICK:bar')
+    
+    def test_unregistered_user(self):
+        """
+        Tests that an unregistered user is not allowed to talk
+        """
 
+        self.proto1.lineReceived('CHAT:what up buddy?')
+        self.assertEqual(self.tr1.value().strip(), 'ERR:CHAT:Unregistered user! register first.')
+        self.assertItemsEqual(self.proto1.factory.parser.get_clients(), [])
+
+    def test_user_disconnected(self):
+        """
+        Tests that when user is disconnected, proper cleanup is performed
+        """
+        self.proto1.lineReceived('REGISTER:foo:')
+        self.proto1.lineReceived('CHAT:hey')
+        self.proto1.lineReceived('UNREGISTER:')
+        self.assertItemsEqual(self.proto1.factory.parser.get_clients(), [])
+
+    def test_get_clients(self):
+        """
+        tests the get_clients method of parser
+        """
+        self.proto1.lineReceived('REGISTER:foo:')
+        self.proto2.lineReceived('REGISTER:bar:')
+        self.assertItemsEqual(self.proto1.factory.parser.get_clients(), self.proto1.factory.parser.clients.keys())
