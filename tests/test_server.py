@@ -9,9 +9,9 @@ class ChatServerTest(unittest.TestCase):
 
     def setUp(self):
         factory = ChatProtocolFactory()
-        self.proto1 = factory.buildProtocol(('127.0.0.1', 2233))
-        self.proto2 = factory.buildProtocol(('127.0.0.1', 2233))
-        self.proto3 = factory.buildProtocol(('127.0.0.1', 2233))
+        self.proto1 = factory.buildProtocol(('127.0.0.1', 0))
+        self.proto2 = factory.buildProtocol(('127.0.0.1', 0))
+        self.proto3 = factory.buildProtocol(('127.0.0.1', 0))
 
         self.proto1.factory = factory
         self.proto2.factory = factory
@@ -30,7 +30,6 @@ class ChatServerTest(unittest.TestCase):
         self.proto2.transport.loseConnection()
         self.proto3.transport.loseConnection()
 
-
     def test_register(self):
         """
         Tests the REGISTER command of chat. Used to 'add' the user to the chat
@@ -40,16 +39,16 @@ class ChatServerTest(unittest.TestCase):
         2. If failed then ->  ERR:NICK:<MSG>
         """
 
-        self.proto1.dataReceived('REGISTER:foo:')
+        self.proto1.lineReceived('REGISTER:foo:')
         self.assertItemsEqual(self.proto1.factory.parser.get_clients(), ['foo'])
-        self.assertEqual(self.tr1.value(), 'OK:NICK:foo')
+        self.assertEqual(self.tr1.value().strip(), 'OK:NICK:foo')
 
-        self.proto2.dataReceived('REGISTER:foo:')
-        self.assertEqual(self.tr2.value(), 'ERR:NICK:Nick already exists. Use another nick')
+        self.proto2.lineReceived('REGISTER:foo:')
+        self.assertEqual(self.tr2.value().strip(), 'ERR:NICK:Nick already exists. Use another nick')
 
-        self.proto3.dataReceived('REGISTER:bar:')
+        self.proto3.lineReceived('REGISTER:bar:')
         self.assertItemsEqual(self.proto3.factory.parser.get_clients(), ['foo', 'bar'])
-        self.assertEqual(self.tr2.value(), 'OK:NICK:bar')
+        self.assertEqual(self.tr2.value().strip(), 'OK:NICK:bar')
 
     def test_valid_chat(self):
         """
@@ -59,20 +58,20 @@ class ChatServerTest(unittest.TestCase):
         Reply for success is in the format -> OK:DATA:<NICK>:<MESSAGE>
         """
         
-        self.proto1.dataReceived('REGISTER:foo:')
-        self.assertEqual(self.tr1.value(), 'OK:NICK:foo')
-        self.proto1.dataReceived('CHAT:foo:This is a test message')
-        self.assertEqual(self.tr1.value(), 'OK:DATA:foo:This is a test message')
-        self.assertEqual(self.tr2.value(), 'OK:DATA:foo:This is a test message')
-        self.assertEqual(self.tr3.value(), 'OK:DATA:foo:This is a test message')
+        self.proto1.lineReceived('REGISTER:foo:')
+        self.assertEqual(self.tr1.value().strip(), 'OK:NICK:foo')
+        self.proto1.lineReceived('CHAT:foo:This is a test message\n')
+        self.assertEqual(self.tr1.value().strip(), 'OK:DATA:foo:This is a test message')
+        self.assertEqual(self.tr2.value().strip(), 'OK:DATA:foo:This is a test message')
+        self.assertEqual(self.tr3.value().strip(), 'OK:DATA:foo:This is a test message')
 
     def test_invalid_chat(self):
         """
         Test the CHAT command when the user has not actually registered themselves
         """
         
-        self.proto1.dataReceived('CHAT:foo:This is a test message')
-        self.assertEqual(self.tr1.value(), 'ERR:DATA:Unregistered user! register first.')
+        self.proto1.lineReceived('CHAT:foo:This is a test message\n')
+        self.assertEqual(self.tr1.value().strip(), 'ERR:DATA:Unregistered user! register first.')
 
     def test_unregister(self):
         """
@@ -81,13 +80,13 @@ class ChatServerTest(unittest.TestCase):
         No reply is there for this command
         """
 
-        self.proto1.dataReceived('REGISTER:foo:')
-        self.assertEqual(self.tr1.value(), 'OK:NICK:foo')
+        self.proto1.lineReceived('REGISTER:foo:')
+        self.assertEqual(self.tr1.value().strip(), 'OK:NICK:foo')
         self.assertItemsEqual(self.proto1.factory.parser.get_clients(), ['foo'])
-        self.proto1.dataReceived('UNREGISTER::')
+        self.proto1.lineReceived('UNREGISTER::')
         self.assertItemsEqual(self.proto1.factory.parser.get_clients(), [])
 
         # if someone unregistered sends unregister, ignore them
-        self.proto1.dataReceived('UNREGISTER::')
-        self.assertItemsEqual(factory.parser.get_clients(), set())
+        self.proto1.lineReceived('UNREGISTER::')
+        self.assertItemsEqual(self.proto1.factory.parser.get_clients(), [])
 
