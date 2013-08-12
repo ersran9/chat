@@ -59,11 +59,8 @@ class ChatServerTest(unittest.TestCase):
         """
         
         self.proto1.lineReceived('REGISTER:foo:')
-        self.assertEqual(self.tr1.value().strip(), 'OK:NICK:foo')
-        self.proto1.lineReceived('CHAT:foo:This is a test message\n')
-        self.assertEqual(self.tr1.value().strip(), 'OK:DATA:foo:This is a test message')
-        self.assertEqual(self.tr2.value().strip(), 'OK:DATA:foo:This is a test message')
-        self.assertEqual(self.tr3.value().strip(), 'OK:DATA:foo:This is a test message')
+        self.proto1.lineReceived('CHAT:This is a test message')
+        self.assertEqual(self.tr1.value().strip(), 'OK:NICK:foo\r\nOK:CHAT:foo:This is a test message')
 
     def test_invalid_chat(self):
         """
