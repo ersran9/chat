@@ -139,3 +139,15 @@ class ChatServerTest(unittest.TestCase):
         self.proto2.lineReceived('hahahahahhahahahhahahahahha:a')
         self.proto2.lineReceived('muahahahhahahahahhahahaha:hah')
         self.assertEqual(self.tr2.value(), 'OK:NICK:soo\r\nERR:a\r\nERR:hah\r\n')
+
+    def test_connection_lost(self):
+        """
+        Tests that when connection is lost, reuse of nick is allowed
+        """
+
+        self.proto1.lineReceived('REGISTER:foo:')
+        self.proto1.lineReceived('CHAT: ok some data')
+        self.proto1.loseConnection()
+        self.assertItemsEqual(self.proto1.factory.parser.get_clients(), [])
+        self.proto2.lineReceived('REGISTER:foo:')
+        self.assertEqual(self.tr2.value().strip(), 'OK:NICK:foo')
