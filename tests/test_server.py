@@ -48,7 +48,7 @@ class ChatServerTest(unittest.TestCase):
 
         self.proto3.lineReceived('REGISTER:bar:')
         self.assertItemsEqual(self.proto3.factory.parser.get_clients(), ['foo', 'bar'])
-        self.assertEqual(self.tr2.value().strip(), 'OK:NICK:bar')
+        self.assertEqual(self.tr3.value().strip(), 'OK:NICK:bar')
 
     def test_valid_chat(self):
         """
@@ -70,8 +70,8 @@ class ChatServerTest(unittest.TestCase):
         Test the CHAT command when the user has not actually registered themselves
         """
         
-        self.proto1.lineReceived('CHAT:foo:This is a test message\n')
-        self.assertEqual(self.tr1.value().strip(), 'ERR:DATA:Unregistered user! register first.')
+        self.proto1.lineReceived('CHAT:foo:This is a test message')
+        self.assertEqual(self.tr1.value().strip(), 'ERR:CHAT:Unregistered user! register first.')
 
     def test_unregister(self):
         """

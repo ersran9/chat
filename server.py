@@ -16,8 +16,14 @@ class ParseData(object):
         """
         nick = contents.split(':', 1)[0]
         if nick == '' or nick in self.clients:
-            return self.errhandle('NICK:Nick already exists. Use another nick')
+            return self.errhandle('NICK:Nick already exists. Use another nick', protocol)
         
+        for nick_, protocol_ in self.clients.items():
+            if protocol_ == protocol:
+                del self.clients[nick]
+                self.clients[nick_] = protocol
+                return protocol.sendLine('OK:NICK:'+protocol.nick)
+
         self.clients[nick] = protocol
         protocol.nick = nick
         protocol.sendLine('OK:NICK:'+protocol.nick)
@@ -57,6 +63,16 @@ class ChatProtocol(LineReceiver):
         cmd, data = line.split(':',1)
         self.factory.parser.dispatch(cmd, data, self)
 
+    def connectionLost(self, reason):
+        """
+        perform cleanup here. entries made in client dict are to be cleared out
+        [ in ParseData class ]
+        """
+        for nick, protocol in self.factory.parser.clients:
+            if self == protocol:
+                del self.factory.parser.clients[nick]
+                return
+        
 class ChatProtocolFactory(ServerFactory):   
     protocol = ChatProtocol
 
