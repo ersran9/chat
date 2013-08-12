@@ -118,8 +118,24 @@ class ChatServerTest(unittest.TestCase):
 
     def test_get_clients(self):
         """
-        tests the get_clients method of parser
+        Tests the get_clients method of parser
         """
         self.proto1.lineReceived('REGISTER:foo:')
         self.proto2.lineReceived('REGISTER:bar:')
         self.assertItemsEqual(self.proto1.factory.parser.get_clients(), self.proto1.factory.parser.clients.keys())
+
+    def test_invalid_data(self):
+        """
+        Tests that server ignores invalid data
+        """
+         
+        self.proto1.lineReceived('REGISTER:foo:')
+        self.proto1.lineReceived('hahahahahhahahahhahahahahhaa')
+        self.proto1.lineReceived('muahahahhahahahahhahahahahah')
+        self.assertEqual(self.tr1.value(), 'OK:NICK:foo\r\n')
+
+
+        self.proto2.lineReceived('REGISTER:soo:')
+        self.proto2.lineReceived('hahahahahhahahahhahahahahha:a')
+        self.proto2.lineReceived('muahahahhahahahahhahahaha:hah')
+        self.assertEqual(self.tr2.value(), 'OK:NICK:soo\r\nERR:a\r\nERR:hah\r\n')
