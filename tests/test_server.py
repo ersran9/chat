@@ -87,3 +87,10 @@ class ChatServerTest(unittest.TestCase):
         self.proto1.lineReceived('UNREGISTER::')
         self.assertItemsEqual(self.proto1.factory.parser.get_clients(), [])
 
+    def test_change_nick(self):
+        self.proto1.lineReceived('REGISTER:foo:')
+        self.proto1.lineReceived('CHAT:hey')
+        self.proto1.lineReceived('REGISTER:bar:')
+        self.assertItemsEqual(self.proto1.factory.parser.get_clients(), ['bar'])
+        self.assertEqual(self.tr1.value().strip(), 'OK:NICK:foo\r\nOK:CHAT:foo:hey\r\nOK:NICK:bar')
+
