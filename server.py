@@ -20,8 +20,9 @@ class ParseData(object):
         
         for nick_, protocol_ in self.clients.items():
             if protocol_ == protocol:
-                del self.clients[nick]
-                self.clients[nick_] = protocol
+                del self.clients[nick_]
+                self.clients[nick] = protocol
+                protocol.nick = nick
                 return protocol.sendLine('OK:NICK:'+protocol.nick)
 
         self.clients[nick] = protocol
