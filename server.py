@@ -47,6 +47,7 @@ class ParseData(object):
             del self.clients[protocol.nick]
 
         protocol.transport.loseConnection()
+        protocol.nick = None
 
     def send(self, protocol, nick, contents):
         protocol.sendLine('OK:CHAT:'+nick+':'+contents)
@@ -73,16 +74,23 @@ class ChatProtocol(LineReceiver):
         perform cleanup here. entries made in client dict are to be cleared out
         [ in ParseData class ]
         """
-        for nick, protocol in self.factory.parser.clients.items():
-            if self == protocol:
-                del self.factory.parser.clients[nick]
-                return
-        
+        if self.nick:
+            if self.nick in self.factory.parser.clients:
+                del self.factory.parser.clients[self.nick]
+         
 class ChatProtocolFactory(ServerFactory):   
     protocol = ChatProtocol
 
     def __init__(self):
         self.parser = ParseData()
+
+def parse_arg():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--interface','-i', help="Interface on which the server should listen", default='localhost')
+    parser.add_argument('--port', '-p', help="Port on which server will run.", default=0, type=int)
+    args = parser.parse_args()
+    return args
 
 def main():
     """
@@ -90,8 +98,8 @@ def main():
     """
 
     from twisted.internet import reactor
-    import sys
-    p = reactor.listenTCP(int(sys.argv[1]), ChatProtocolFactory(), interface='localhost')
+    args = parse_arg()
+    p = reactor.listenTCP(args.port , ChatProtocolFactory(), interface=args.interface)
     reactor.run()
 
 if __name__ == '__main__':
